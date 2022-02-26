@@ -18,7 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.thewire.notification_experiment.ui.theme.Notification_experimentTheme
+import java.util.concurrent.TimeUnit
 
 const val CHANNEL_ID = "MY_NOTIFICATION_CHANNEL"
 
@@ -33,26 +37,20 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background
                 ) {
                     Notifier(
-                        this::notification,
-                        this::addChannel
+                        { notification(
+                            this,
+                            "MyNotification",
+                            "My description",
+                            "My longer message"
+                        ) },
+                        this::addChannel,
+                        this::createWorkManager,
+                        this::createScheduledWorkManager,
+                        this::notificationWorker,
+                        this::cancelScheduleWorkManager,
                     )
                 }
             }
-        }
-    }
-
-    fun notification() {
-        val notificationId = 42
-        var builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.test_icon)
-            .setContentTitle("My notification")
-            .setContentText("This is my message")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("This is my message with more text and even more text..."))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-        with(NotificationManagerCompat.from(this)) {
-            notify(notificationId, builder.build())
         }
     }
 
@@ -70,6 +68,38 @@ class MainActivity : ComponentActivity() {
             notificationManager.createNotificationChannel(channel)
         }
     }
+
+    fun createWorkManager() {
+        val workManager = WorkManager.getInstance(application)
+
+        val workRequest = OneTimeWorkRequestBuilder<MyBackgroundWorker>()
+            .addTag("TEST_TAG")
+            .build()
+        workManager.beginWith(workRequest).enqueue()
+    }
+
+    fun createScheduledWorkManager(tag: String) {
+        val workManager = WorkManager.getInstance(application)
+
+        val workRequest = PeriodicWorkRequestBuilder<MyBackgroundWorker>(15, TimeUnit.MINUTES)
+            .addTag(tag)
+            .build()
+        workManager.enqueue(workRequest)
+    }
+
+    fun cancelScheduleWorkManager(tag: String) {
+        WorkManager.getInstance(application).cancelAllWorkByTag(tag)
+    }
+
+    fun notificationWorker(tag: String) {
+        addChannel()
+        val workManager = WorkManager.getInstance(application)
+
+        val workRequest = PeriodicWorkRequestBuilder<MyNotificationWorker>(15, TimeUnit.MINUTES)
+            .addTag(tag)
+            .build()
+        workManager.enqueue(workRequest)
+    }
 }
 
 
@@ -77,7 +107,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Notifier(
     notify: () -> Unit,
-    addChannel: () -> Unit
+    addChannel: () -> Unit,
+    createWorker: () -> Unit,
+    createPeriodWorkManager: (String) -> Unit,
+    notificationWorker: (String) -> Unit,
+    cancelPeriodWorkManager: (String) -> Unit,
 ) {
     Column() {
         Button(
@@ -89,6 +123,41 @@ fun Notifier(
             onClick = notify
         ) {
             Text("Notification")
+        }
+        Button(
+            onClick = createWorker
+        ) {
+            Text("Create one time Worker")
+        }
+        Button(
+            onClick = { createPeriodWorkManager("TEST_TAG2") }
+        ) {
+            Text("Create periodic Worker")
+        }
+        Button(
+            onClick = { cancelPeriodWorkManager("TEST_TAG2") }
+        ) {
+            Text("Cancel periodic Worker")
+        }
+        Button(
+            onClick = { createPeriodWorkManager("TEST_TAG3") }
+        ) {
+            Text("Create periodic Worker 3")
+        }
+        Button(
+            onClick = { cancelPeriodWorkManager("TEST_TAG3") }
+        ) {
+            Text("Cancel periodic Worker 3")
+        }
+        Button(
+            onClick = { notificationWorker("TEST_TAG4") }
+        ) {
+            Text("Create notification Worker")
+        }
+        Button(
+            onClick = { cancelPeriodWorkManager("TEST_TAG4") }
+        ) {
+            Text("Cancel notification Worker")
         }
     }
 
