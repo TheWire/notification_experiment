@@ -3,6 +3,7 @@ package com.thewire.notification_experiment
 import android.content.Context
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import java.lang.Exception
 
 class MyBackgroundWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
     override fun doWork(): Result {
@@ -13,6 +14,23 @@ class MyBackgroundWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, p
         return Result.success()
     }
 }
+
+class MyDataWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
+    override fun doWork(): Result {
+        Thread.sleep(2000)
+        try {
+            val str = inputData.getString("MYSTRING")
+            val int = inputData.getInt("MYINT", -1)
+            println("$int $str")
+            return Result.success()
+        } catch(e: Exception) {
+            return Result.failure()
+        }
+
+
+    }
+}
+
 
 class MyNotificationWorker(private val ctx: Context, params: WorkerParameters) :
     Worker(ctx, params) {

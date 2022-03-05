@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -71,9 +72,13 @@ class MainActivity : ComponentActivity() {
 
     fun createWorkManager() {
         val workManager = WorkManager.getInstance(application)
-
-        val workRequest = OneTimeWorkRequestBuilder<MyBackgroundWorker>()
+        val data = Data.Builder()
+            .putString("MYSTRING", "this is a string")
+            .putInt("MYINT", 42)
+            .build()
+        val workRequest = OneTimeWorkRequestBuilder<MyDataWorker>()
             .addTag("TEST_TAG")
+            .setInputData(data)
             .build()
         workManager.beginWith(workRequest).enqueue()
     }
