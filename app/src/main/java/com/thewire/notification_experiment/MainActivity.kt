@@ -1,8 +1,11 @@
 package com.thewire.notification_experiment
 
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -38,21 +41,36 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background
                 ) {
                     Notifier(
-                        { notification(
+                        notify = { notification(
                             this,
                             "MyNotification",
                             "My description",
                             "My longer message"
                         ) },
-                        this::addChannel,
-                        this::createWorkManager,
-                        this::createScheduledWorkManager,
-                        this::notificationWorker,
-                        this::cancelScheduleWorkManager,
+                        alarm = this::alarm,
+                        addChannel = this::addChannel,
+                        createWorker = this::createWorkManager,
+                        createPeriodWorkManager = this::createScheduledWorkManager,
+                        notificationWorker = this::notificationWorker,
+                         cancelPeriodWorkManager =  this::cancelScheduleWorkManager,
                     )
                 }
             }
         }
+    }
+
+    fun alarm() {
+        val requestId = 0
+        val intent = Intent(this, AlarmReceiver::class.java)
+        intent.action = "MYACTION"
+        intent.putExtra("MYSTRING", " this is my string")
+
+        val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val pendingIntent =
+            PendingIntent.getBroadcast(applicationContext, requestId, intent, 0)
+        val time = System.currentTimeMillis() + 10000L
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent)
+//        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
     }
 
     fun addChannel() {
@@ -112,6 +130,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Notifier(
     notify: () -> Unit,
+    alarm: () -> Unit,
     addChannel: () -> Unit,
     createWorker: () -> Unit,
     createPeriodWorkManager: (String) -> Unit,
@@ -163,6 +182,11 @@ fun Notifier(
             onClick = { cancelPeriodWorkManager("TEST_TAG4") }
         ) {
             Text("Cancel notification Worker")
+        }
+        Button(
+            onClick = alarm
+        ) {
+            Text("Alarm")
         }
     }
 
