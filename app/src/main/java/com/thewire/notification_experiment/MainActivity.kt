@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                             "My longer message"
                         ) },
                         alarm = this::alarm,
+                        notificationAlarm = this::notificationAlarm,
                         addChannel = this::addChannel,
                         createWorker = this::createWorkManager,
                         createPeriodWorkManager = this::createScheduledWorkManager,
@@ -59,6 +60,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun notificationAlarm() {
+        val requestId = 0
+        val intent = Intent(this, AlarmNotificationReceiver::class.java)
+        intent.action = "MYNOTIFICATIONACTION"
+        intent.putExtra("MYSTRING", " this is my string")
+
+        val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val pendingIntent =
+            PendingIntent.getBroadcast(applicationContext, requestId, intent, PendingIntent.FLAG_IMMUTABLE)
+        val time = System.currentTimeMillis() + 10000L
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent)
+//        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
+    }
+
     fun alarm() {
         val requestId = 0
         val intent = Intent(this, AlarmReceiver::class.java)
@@ -67,7 +82,7 @@ class MainActivity : ComponentActivity() {
 
         val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent =
-            PendingIntent.getBroadcast(applicationContext, requestId, intent, 0)
+            PendingIntent.getBroadcast(applicationContext, requestId, intent, PendingIntent.FLAG_IMMUTABLE)
         val time = System.currentTimeMillis() + 10000L
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent)
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
@@ -131,6 +146,7 @@ class MainActivity : ComponentActivity() {
 fun Notifier(
     notify: () -> Unit,
     alarm: () -> Unit,
+    notificationAlarm: () -> Unit,
     addChannel: () -> Unit,
     createWorker: () -> Unit,
     createPeriodWorkManager: (String) -> Unit,
@@ -187,6 +203,11 @@ fun Notifier(
             onClick = alarm
         ) {
             Text("Alarm")
+        }
+        Button(
+            onClick = notificationAlarm
+        ) {
+            Text("Notification Alarm")
         }
     }
 
