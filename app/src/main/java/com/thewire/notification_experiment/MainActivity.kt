@@ -53,11 +53,22 @@ class MainActivity : ComponentActivity() {
                         createWorker = this::createWorkManager,
                         createPeriodWorkManager = this::createScheduledWorkManager,
                         notificationWorker = this::notificationWorker,
-                         cancelPeriodWorkManager =  this::cancelScheduleWorkManager,
+                        workerNotificationAlarm = this::workerNotificationAlarm,
+                        cancelPeriodWorkManager =  this::cancelScheduleWorkManager,
                     )
                 }
             }
         }
+    }
+
+    fun workerNotificationAlarm(tag: String) {
+        addChannel()
+        val workManager = WorkManager.getInstance(application)
+
+        val workRequest = OneTimeWorkRequestBuilder<MyAlarmNotificationWorker>()
+            .addTag(tag)
+            .build()
+        workManager.enqueue(workRequest)
     }
 
     fun notificationAlarm() {
@@ -151,6 +162,7 @@ fun Notifier(
     createWorker: () -> Unit,
     createPeriodWorkManager: (String) -> Unit,
     notificationWorker: (String) -> Unit,
+    workerNotificationAlarm: (String) -> Unit,
     cancelPeriodWorkManager: (String) -> Unit,
 ) {
     Column() {
@@ -208,6 +220,11 @@ fun Notifier(
             onClick = notificationAlarm
         ) {
             Text("Notification Alarm")
+        }
+        Button(
+            onClick = { workerNotificationAlarm("TEST_TAG4") }
+        ) {
+            Text("Worker Notification Alarm")
         }
     }
 
