@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ class MainActivity : ComponentActivity() {
                             "My longer message"
                         ) },
                         alarm = this::alarm,
+                        cancelAlarm = this::cancelAlarm,
                         notificationAlarm = this::notificationAlarm,
                         addChannel = this::addChannel,
                         createWorker = this::createWorkManager,
@@ -85,18 +87,31 @@ class MainActivity : ComponentActivity() {
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
     }
 
-    fun alarm() {
-        val requestId = 0
+    fun alarm(requestId: Int) {
         val intent = Intent(this, AlarmReceiver::class.java)
         intent.action = "MYACTION"
         intent.putExtra("MYSTRING", " this is my string")
 
         val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent =
-            PendingIntent.getBroadcast(applicationContext, requestId, intent, PendingIntent.FLAG_IMMUTABLE)
-        val time = System.currentTimeMillis() + 10000L
+            PendingIntent.getBroadcast(applicationContext, requestId, intent, 0)
+        val time = System.currentTimeMillis() + 3000L
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent)
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
+    }
+
+    fun cancelAlarm(requestId: Int) {
+        val intent = Intent(this, AlarmReceiver::class.java)
+        intent.action = "MYACTION"
+        intent.putExtra("MYSTRING", " this is my string")
+        val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val pendingIntent =
+            PendingIntent.getBroadcast(applicationContext, requestId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+        if(pendingIntent == null) {
+            println("error pending Intent null")
+        } else {
+            alarmManager.cancel(pendingIntent)
+        }
     }
 
     fun addChannel() {
@@ -156,7 +171,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Notifier(
     notify: () -> Unit,
-    alarm: () -> Unit,
+    alarm: (Int) -> Unit,
+    cancelAlarm: (Int) -> Unit,
     notificationAlarm: () -> Unit,
     addChannel: () -> Unit,
     createWorker: () -> Unit,
@@ -212,9 +228,24 @@ fun Notifier(
             Text("Cancel notification Worker")
         }
         Button(
-            onClick = alarm
+            onClick = { alarm(1) }
         ) {
-            Text("Alarm")
+            Text("Alarm 1")
+        }
+        Button(
+            onClick = { cancelAlarm(1) }
+        ) {
+            Text("Cancel alarm 1")
+        }
+        Button(
+            onClick = { alarm(2) }
+        ) {
+            Text("Alarm 2")
+        }
+        Button(
+            onClick = { cancelAlarm(2) }
+        ) {
+            Text("Cancel alarm 2")
         }
         Button(
             onClick = notificationAlarm

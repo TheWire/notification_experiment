@@ -11,7 +11,7 @@ class AlarmReceiver : BroadcastReceiver() {
         if(intent.action == "MYACTION") {
             val myString = intent.getStringExtra("MYSTRING")
             Toast.makeText(context, myString, Toast.LENGTH_SHORT).show()
-            println("alarm alarm alarm")
+            println("alarm alarm alarm $myString")
         }
     }
 }
