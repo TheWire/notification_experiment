@@ -11,8 +11,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -31,7 +36,7 @@ import java.util.concurrent.TimeUnit
 
 const val CHANNEL_ID = "MY_NOTIFICATION_CHANNEL"
 
-
+const val ALARM_TAG = "ALARM"
 class MainActivity : ComponentActivity() {
 
     val alarms = arrayListOf<Alarm>()
@@ -85,7 +90,7 @@ class MainActivity : ComponentActivity() {
         val intent = Intent(this, AlarmNotificationReceiver::class.java)
         intent.action = action
         intent.putExtra(stringName, string)
-        alarms.add(Alarm(action, stringName, string, requestId))
+        alarms.add(Alarm(requestId, requestId))
         val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent =
             PendingIntent.getBroadcast(applicationContext, requestId, intent, PendingIntent.FLAG_IMMUTABLE)
@@ -96,7 +101,6 @@ class MainActivity : ComponentActivity() {
 
     fun alarm(id: Int, time: Long) {
         val time = System.currentTimeMillis() + time
-        Log.i("ALARM", "alarm $id launched for $time")
         try {
             val intent = Intent(this, AlarmReceiver::class.java)
             val action = "MYACTION"
@@ -104,46 +108,52 @@ class MainActivity : ComponentActivity() {
             val string = "this is my string $id $time"
             intent.action = action
             intent.putExtra(stringName, string)
-            alarms.add(Alarm(action, stringName, string, id))
+            val requestId = Pair(id, time).hashCode()
+            alarms.add(Alarm(id, requestId))
             val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val requestId = Pair(id, time)
             val pendingIntent =
-                PendingIntent.getBroadcast(applicationContext, requestId.hashCode(), intent, PendingIntent.FLAG_MUTABLE)
+                PendingIntent.getBroadcast(applicationContext, requestId.hashCode(), intent, 0)
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent)
+            Log.i(ALARM_TAG, "alarm $id with requestId $requestId launched for $time")
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
         } catch(e: Exception) {
-            Log.e("ALARM", e.message ?: "Unknown error")
+            Log.e(ALARM_TAG, e.message ?: "Unknown error")
         }
 
     }
 
-    fun cancelAlarm(requestId: Int) {
-        Log.i("ALARM", "alarm $requestId canceled")
-        val intent = Intent(this, AlarmReceiver::class.java)
-        intent.action = "MYACTION"
-//        intent.putExtra("MYSTRING", "this is my string $requestId")
-        alarms.removeIf{it.requestId == requestId}
-        val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pendingIntent =
-            PendingIntent.getBroadcast(applicationContext, requestId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-        if(pendingIntent == null) {
-            println("error pending Intent null")
-        } else {
-            alarmManager.cancel(pendingIntent)
+    fun cancelAlarm(id: Int) {
+        alarms.forEach { alarm ->
+            if(alarm.id == id) {
+                val intent = Intent(this, AlarmReceiver::class.java)
+                intent.action = "MYACTION"
+                val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val pendingIntent =
+                    PendingIntent.getBroadcast(applicationContext, alarm.requestId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+                if(pendingIntent == null) {
+                    Log.e(ALARM_TAG, "error on cancelling alarm $id with requestId ${alarm.requestId} pending Intent null")
+                } else {
+                    Log.i(ALARM_TAG, "alarm $id canceled with requestId ${alarm.requestId}")
+                    pendingIntent.cancel()
+                    alarmManager.cancel(pendingIntent)
+                }
+            }
         }
+        alarms.removeIf{it.id == id}
     }
 
     fun cancelAllAlarms() {
         alarms.forEach { alarm ->
             val intent = Intent(this, AlarmReceiver::class.java)
-            intent.action = alarm.action
-            intent.putExtra(alarm.stringName, alarm.string)
+            intent.action = "MYACTION"
             val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val pendingIntent =
                 PendingIntent.getBroadcast(applicationContext, alarm.requestId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
             if(pendingIntent == null) {
-                println("error pending Intent null")
+                Log.e(ALARM_TAG,"error on cancelling alarm ${alarm.id} with requestId ${alarm.requestId} pending Intent null")
             } else {
+                Log.i(ALARM_TAG, "alarm ${alarm.id} with requestId ${alarm.requestId} canceled")
+                pendingIntent.cancel()
                 alarmManager.cancel(pendingIntent)
             }
         }
@@ -218,7 +228,9 @@ fun Notifier(
     workerNotificationAlarm: (String) -> Unit,
     cancelPeriodWorkManager: (String) -> Unit,
 ) {
-    Column() {
+    Column(
+        modifier = Modifier.verticalScroll(rememberScrollState())
+    ) {
         Button(
             onClick = addChannel
         ) {
