@@ -6,7 +6,7 @@ import androidx.core.app.NotificationManagerCompat
 
 fun notification(context: Context, title: String, message: String, bigMessage: String) {
     val notificationId = 42
-    var builder = NotificationCompat.Builder(context, CHANNEL_ID)
+    val builder = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.test_icon)
         .setContentTitle(title)
         .setContentText(message)

@@ -6,14 +6,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
@@ -24,9 +20,6 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
@@ -37,9 +30,10 @@ import java.util.concurrent.TimeUnit
 const val CHANNEL_ID = "MY_NOTIFICATION_CHANNEL"
 
 const val ALARM_TAG = "ALARM"
+
 class MainActivity : ComponentActivity() {
 
-    val alarms = arrayListOf<Alarm>()
+    private val alarms = arrayListOf<Alarm>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -50,12 +44,14 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background
                 ) {
                     Notifier(
-                        notify = { notification(
-                            this,
-                            "MyNotification",
-                            "My description",
-                            "My longer message"
-                        ) },
+                        notify = {
+                            notification(
+                                this,
+                                "MyNotification",
+                                "My description",
+                                "My longer message"
+                            )
+                        },
                         alarm = this::alarm,
                         cancelAlarm = this::cancelAlarm,
                         cancelAlarms = this::cancelAllAlarms,
@@ -65,14 +61,14 @@ class MainActivity : ComponentActivity() {
                         createPeriodWorkManager = this::createScheduledWorkManager,
                         notificationWorker = this::notificationWorker,
                         workerNotificationAlarm = this::workerNotificationAlarm,
-                        cancelPeriodWorkManager =  this::cancelScheduleWorkManager,
+                        cancelPeriodWorkManager = this::cancelScheduleWorkManager,
                     )
                 }
             }
         }
     }
 
-    fun workerNotificationAlarm(tag: String) {
+    private fun workerNotificationAlarm(tag: String) {
         addChannel()
         val workManager = WorkManager.getInstance(application)
 
@@ -82,7 +78,7 @@ class MainActivity : ComponentActivity() {
         workManager.enqueue(workRequest)
     }
 
-    fun notificationAlarm() {
+    private fun notificationAlarm() {
         val requestId = 0
         val action = "MYNOTIFICATIONACTION"
         val stringName = "MYSTRING"
@@ -91,47 +87,63 @@ class MainActivity : ComponentActivity() {
         intent.action = action
         intent.putExtra(stringName, string)
         alarms.add(Alarm(requestId, requestId))
-        val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarmManager =
+            applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent =
-            PendingIntent.getBroadcast(applicationContext, requestId, intent, PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(
+                applicationContext,
+                requestId,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
         val time = System.currentTimeMillis() + 10000L
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent)
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
     }
 
-    fun alarm(id: Int, time: Long) {
-        val time = System.currentTimeMillis() + time
+    private fun alarm(id: Int, time: Long) {
+        val newTime = System.currentTimeMillis() + time
         try {
             val intent = Intent(this, AlarmReceiver::class.java)
             val action = "MYACTION"
             val stringName = "MYSTRING"
-            val string = "this is my string $id $time"
+            val string = "this is my string $id $newTime"
             intent.action = action
             intent.putExtra(stringName, string)
-            val requestId = Pair(id, time).hashCode()
+            val requestId = Pair(id, newTime).hashCode()
             alarms.add(Alarm(id, requestId))
-            val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val alarmManager =
+                applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val pendingIntent =
                 PendingIntent.getBroadcast(applicationContext, requestId.hashCode(), intent, 0)
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pendingIntent)
-            Log.i(ALARM_TAG, "alarm $id with requestId $requestId launched for $time")
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, newTime, pendingIntent)
+            Log.i(ALARM_TAG, "alarm $id with requestId $requestId launched for $newTime")
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, time, pendingIntent)
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             Log.e(ALARM_TAG, e.message ?: "Unknown error")
         }
 
     }
 
-    fun cancelAlarm(id: Int) {
+    private fun cancelAlarm(id: Int) {
         alarms.forEach { alarm ->
-            if(alarm.id == id) {
+            if (alarm.id == id) {
                 val intent = Intent(this, AlarmReceiver::class.java)
                 intent.action = "MYACTION"
-                val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val alarmManager =
+                    applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
                 val pendingIntent =
-                    PendingIntent.getBroadcast(applicationContext, alarm.requestId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-                if(pendingIntent == null) {
-                    Log.e(ALARM_TAG, "error on cancelling alarm $id with requestId ${alarm.requestId} pending Intent null")
+                    PendingIntent.getBroadcast(
+                        applicationContext,
+                        alarm.requestId,
+                        intent,
+                        PendingIntent.FLAG_CANCEL_CURRENT
+                    )
+                if (pendingIntent == null) {
+                    Log.e(
+                        ALARM_TAG,
+                        "error on cancelling alarm $id with requestId ${alarm.requestId} pending Intent null"
+                    )
                 } else {
                     Log.i(ALARM_TAG, "alarm $id canceled with requestId ${alarm.requestId}")
                     pendingIntent.cancel()
@@ -139,18 +151,27 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        alarms.removeIf{it.id == id}
+        alarms.removeIf { it.id == id }
     }
 
-    fun cancelAllAlarms() {
+    private fun cancelAllAlarms() {
         alarms.forEach { alarm ->
             val intent = Intent(this, AlarmReceiver::class.java)
             intent.action = "MYACTION"
-            val alarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val alarmManager =
+                applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val pendingIntent =
-                PendingIntent.getBroadcast(applicationContext, alarm.requestId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-            if(pendingIntent == null) {
-                Log.e(ALARM_TAG,"error on cancelling alarm ${alarm.id} with requestId ${alarm.requestId} pending Intent null")
+                PendingIntent.getBroadcast(
+                    applicationContext,
+                    alarm.requestId,
+                    intent,
+                    PendingIntent.FLAG_CANCEL_CURRENT
+                )
+            if (pendingIntent == null) {
+                Log.e(
+                    ALARM_TAG,
+                    "error on cancelling alarm ${alarm.id} with requestId ${alarm.requestId} pending Intent null"
+                )
             } else {
                 Log.i(ALARM_TAG, "alarm ${alarm.id} with requestId ${alarm.requestId} canceled")
                 pendingIntent.cancel()
@@ -160,22 +181,20 @@ class MainActivity : ComponentActivity() {
         alarms.clear()
     }
 
-    fun addChannel() {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "my channel"
-            val descriptionText = "my experimental channel"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+    private fun addChannel() {
+        val name = "my channel"
+        val descriptionText = "my experimental channel"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+            description = descriptionText
         }
+
+        val notificationManager: NotificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
-    fun createWorkManager() {
+    private fun createWorkManager() {
         val workManager = WorkManager.getInstance(application)
         val data = Data.Builder()
             .putString("MYSTRING", "this is a string")
@@ -188,7 +207,7 @@ class MainActivity : ComponentActivity() {
         workManager.beginWith(workRequest).enqueue()
     }
 
-    fun createScheduledWorkManager(tag: String) {
+    private fun createScheduledWorkManager(tag: String) {
         val workManager = WorkManager.getInstance(application)
 
         val workRequest = PeriodicWorkRequestBuilder<MyBackgroundWorker>(15, TimeUnit.MINUTES)
@@ -197,11 +216,11 @@ class MainActivity : ComponentActivity() {
         workManager.enqueue(workRequest)
     }
 
-    fun cancelScheduleWorkManager(tag: String) {
+    private fun cancelScheduleWorkManager(tag: String) {
         WorkManager.getInstance(application).cancelAllWorkByTag(tag)
     }
 
-    fun notificationWorker(tag: String) {
+    private fun notificationWorker(tag: String) {
         addChannel()
         val workManager = WorkManager.getInstance(application)
 
@@ -211,7 +230,6 @@ class MainActivity : ComponentActivity() {
         workManager.enqueue(workRequest)
     }
 }
-
 
 
 @Composable
