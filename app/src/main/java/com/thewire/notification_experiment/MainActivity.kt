@@ -20,11 +20,9 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
+import androidx.work.*
 import com.thewire.notification_experiment.ui.theme.Notification_experimentTheme
+import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
 const val CHANNEL_ID = "MY_NOTIFICATION_CHANNEL"
@@ -58,6 +56,7 @@ class MainActivity : ComponentActivity() {
                         notificationAlarm = this::notificationAlarm,
                         addChannel = this::addChannel,
                         createWorker = this::createWorkManager,
+                        createUniqueScheduledWorkManager = this::createUniqueScheduledWorkManager,
                         createPeriodWorkManager = this::createScheduledWorkManager,
                         notificationWorker = this::notificationWorker,
                         workerNotificationAlarm = this::workerNotificationAlarm,
@@ -207,6 +206,23 @@ class MainActivity : ComponentActivity() {
         workManager.beginWith(workRequest).enqueue()
     }
 
+    private fun createUniqueScheduledWorkManager(
+        tag: String,
+        uniqueTag: String,
+        existingPeriodicWorkPolicy: ExistingPeriodicWorkPolicy
+    ) {
+        val workManager = WorkManager.getInstance(application)
+
+        val workRequest = PeriodicWorkRequestBuilder<MyBackgroundWorker>(15, TimeUnit.MINUTES)
+            .addTag(tag)
+            .build()
+        workManager.enqueueUniquePeriodicWork(
+            uniqueTag,
+            existingPeriodicWorkPolicy,
+            workRequest,
+        )
+    }
+
     private fun createScheduledWorkManager(tag: String) {
         val workManager = WorkManager.getInstance(application)
 
@@ -241,6 +257,7 @@ fun Notifier(
     notificationAlarm: () -> Unit,
     addChannel: () -> Unit,
     createWorker: () -> Unit,
+    createUniqueScheduledWorkManager: (String, String, ExistingPeriodicWorkPolicy) -> Unit,
     createPeriodWorkManager: (String) -> Unit,
     notificationWorker: (String) -> Unit,
     workerNotificationAlarm: (String) -> Unit,
@@ -283,6 +300,26 @@ fun Notifier(
             onClick = { cancelPeriodWorkManager("TEST_TAG3") }
         ) {
             Text("Cancel periodic Worker 3")
+        }
+        Button(
+            onClick = { createUniqueScheduledWorkManager("TEST_TAG5", "UNIQUE_WORKER_1", ExistingPeriodicWorkPolicy.KEEP) }
+        ) {
+            Text("Create unique periodic Worker keep")
+        }
+        Button(
+            onClick = { createUniqueScheduledWorkManager("TEST_TAG6", "UNIQUE_WORKER_2", ExistingPeriodicWorkPolicy.REPLACE) }
+        ) {
+            Text("Create unique periodic Worker replace")
+        }
+        Button(
+            onClick = { cancelPeriodWorkManager("TEST_TAG5") }
+        ) {
+            Text("Cancel unique periodic Worker keep")
+        }
+        Button(
+            onClick = { cancelPeriodWorkManager("TEST_TAG6") }
+        ) {
+            Text("Cancel unique periodic Worker replace")
         }
         Button(
             onClick = { notificationWorker("TEST_TAG4") }
