@@ -61,10 +61,22 @@ class MainActivity : ComponentActivity() {
                         notificationWorker = this::notificationWorker,
                         workerNotificationAlarm = this::workerNotificationAlarm,
                         cancelPeriodWorkManager = this::cancelScheduleWorkManager,
+                        intentTest = this::intentTest
                     )
                 }
             }
         }
+    }
+
+    private fun intentTest() {
+        val intent = Intent()
+        val listOfStrings = listOf("qwerty", "asdfgh", "zxcvbn")
+        intent.putExtra("STRING_ARRAY", listOfStrings.toTypedArray())
+        val res = intent.getStringArrayExtra("STRING_ARRAY")
+        println(res)
+        val conv = res?.associate { it to true }
+        println(conv)
+
     }
 
     private fun workerNotificationAlarm(tag: String) {
@@ -262,6 +274,7 @@ fun Notifier(
     notificationWorker: (String) -> Unit,
     workerNotificationAlarm: (String) -> Unit,
     cancelPeriodWorkManager: (String) -> Unit,
+    intentTest: () -> Unit,
 ) {
     Column(
         modifier = Modifier.verticalScroll(rememberScrollState())
@@ -365,6 +378,11 @@ fun Notifier(
             onClick = { workerNotificationAlarm("TEST_TAG4") }
         ) {
             Text("Worker Notification Alarm")
+        }
+        Button(
+            onClick = intentTest
+        ) {
+            Text("intent test")
         }
     }
 
